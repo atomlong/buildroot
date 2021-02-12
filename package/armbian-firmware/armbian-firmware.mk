@@ -29,6 +29,14 @@ ARMBIAN_FIRMWARE_FILES += \
 	xr819/sdd_xr819.bin
 endif
 
+# XR819 WiFi firmware
+ifeq ($(BR2_PACKAGE_ARMBIAN_FIRMWARE_ESP8089),y)
+ARMBIAN_FIRMWARE_FILES += \
+	eagle_fw_ate_config_v19.bin \
+	eagle_fw_first_init_v19.bin \
+	eagle_fw_second_init_v19.bin
+endif
+
 ifneq ($(ARMBIAN_FIRMWARE_FILES),)
 define ARMBIAN_FIRMWARE_INSTALL_FILES
 	cd $(@D) && \

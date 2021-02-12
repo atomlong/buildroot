@@ -23,4 +23,9 @@ config BR2_PACKAGE_ARMBIAN_FIRMWARE_XR819
 	help
 	  Firmware files for XR819 WiFi SDIO chip.
 
+config BR2_PACKAGE_ARMBIAN_FIRMWARE_ESP8089
+	bool "ESP8089 WiFi"
+	help
+	  Firmware files for ESP8089 WiFi SDIO chip.
+
 endif

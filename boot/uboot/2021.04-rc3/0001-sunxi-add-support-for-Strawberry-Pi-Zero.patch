@@ -1,0 +1,420 @@
+From b6d59d0e41fa24350fd90da1ef7d1834c2f29229 Mon Sep 17 00:00:00 2001
+From: Atom Long <atom.long@hotmail.com>
+Date: Fri, 12 Mar 2021 09:40:07 -0500
+Subject: [PATCH] sunxi: add support for Strawberry Pi Zero
+
+---
+ arch/arm/dts/Makefile                         |   4 +-
+ .../dts/sun8i-v3s-strawberrypi-zero-flash.dts | 165 ++++++++++++++++++
+ arch/arm/dts/sun8i-v3s-strawberrypi-zero.dts  | 125 +++++++++++++
+ arch/arm/mach-sunxi/Kconfig                   |   2 +-
+ board/sunxi/MAINTAINERS                       |   5 +
+ configs/StrawberryPi_Zero_defconfig           |   8 +
+ configs/StrawberryPi_Zero_flash_defconfig     |  32 ++++
+ 7 files changed, 339 insertions(+), 2 deletions(-)
+ create mode 100644 arch/arm/dts/sun8i-v3s-strawberrypi-zero-flash.dts
+ create mode 100644 arch/arm/dts/sun8i-v3s-strawberrypi-zero.dts
+ create mode 100644 configs/StrawberryPi_Zero_defconfig
+ create mode 100644 configs/StrawberryPi_Zero_flash_defconfig
+
+diff --git a/arch/arm/dts/Makefile b/arch/arm/dts/Makefile
+index c6710826a0..b3d416f59d 100644
+--- a/arch/arm/dts/Makefile
++++ b/arch/arm/dts/Makefile
+@@ -597,7 +597,9 @@ dtb-$(CONFIG_MACH_SUN8I_R40) += \
+ 	sun8i-v40-bananapi-m2-berry.dtb
+ dtb-$(CONFIG_MACH_SUN8I_V3S) += \
+ 	sun8i-s3-pinecube.dtb \
+-	sun8i-v3s-licheepi-zero.dtb
++	sun8i-v3s-licheepi-zero.dtb \
++	sun8i-v3s-strawberrypi-zero.dtb \
++	sun8i-v3s-strawberrypi-zero-flash.dtb
+ dtb-$(CONFIG_MACH_SUN50I_H5) += \
+ 	sun50i-h5-bananapi-m2-plus.dtb \
+ 	sun50i-h5-emlid-neutis-n5-devboard.dtb \
+diff --git a/arch/arm/dts/sun8i-v3s-strawberrypi-zero-flash.dts b/arch/arm/dts/sun8i-v3s-strawberrypi-zero-flash.dts
+new file mode 100644
+index 0000000000..ac6ed060d4
+--- /dev/null
++++ b/arch/arm/dts/sun8i-v3s-strawberrypi-zero-flash.dts
+@@ -0,0 +1,165 @@
++/*
++ * Copyright (C) 2016 Icenowy Zheng <icenowy@aosc.xyz>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include <dt-bindings/input/input.h>
++#include "sun8i-v3s.dtsi"
++#include "sunxi-common-regulators.dtsi"
++
++/ {
++	model = "Strawberry Pi Zero";
++	compatible = "strawberrypi,strawberrypi-zero", "allwinner,sun8i-v3s";
++
++	aliases {
++		serial2 = &uart2;
++		spi0 = &spi0;
++	};
++
++	chosen {
++		stdout-path = "serial2:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		red_led {
++			label = "strawberrypi:red:usr";
++			gpios = <&pio 1 9 GPIO_ACTIVE_HIGH>; /* PB9 */
++			default-state = "off";
++		};
++	};
++};
++
++&lradc {
++	vref-supply = <&reg_vcc3v0>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@400 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <400000>;
++	};
++
++	button@600 {
++		label = "Select";
++		linux,code = <KEY_SELECT>;
++		channel = <0>;
++		voltage = <600000>;
++	};
++
++	button@800 {
++		label = "Start";
++		linux,code = <KEY_OK>;
++		channel = <0>;
++		voltage = <800000>;
++	};
++};
++
++&spi0 {
++	status = "okay";
++
++	/* Winbond 25Q128JV SPI flash */
++	nor0: spi-flash@0 {
++		#address-cells = <1>;
++		#size-cells = <1>;
++		compatible = "winbond,w25q128jv", "jedec,spi-nor";
++		spi-max-frequency = <133000000>;
++		reg = <0>;
++		
++        partitions {
++			   compatible = "fixed-partitions";
++			   #address-cells = <1>;
++			   #size-cells = <1>;
++
++			   partition@0 {
++					   label = "uboot";
++					   reg = <0x0000000 0x0100000>;
++			   };
++
++			   partition@100000 {
++					   label = "dtb";
++					   reg = <0x0100000 0x0010000>;
++			   };
++
++			   partition@110000 {
++					   label = "kernel";
++					   reg = <0x0110000 0x0400000>;
++			   };
++			   
++			   partition@510000 {
++					   label = "rootfs";
++					   reg = <0x0510000 0x0AF0000>;
++			   };
++			};
++		};
++};
++
++&mmc0 {
++	broken-cd;
++	bus-width = <4>;
++	vmmc-supply = <&reg_vcc3v3>;
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-0 = <&uart2_pins>;
++	pinctrl-names = "default";
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
++&usbphy {
++	usb0_id_det-gpios = <&pio 5 6 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
+diff --git a/arch/arm/dts/sun8i-v3s-strawberrypi-zero.dts b/arch/arm/dts/sun8i-v3s-strawberrypi-zero.dts
+new file mode 100644
+index 0000000000..dec3a2dc4c
+--- /dev/null
++++ b/arch/arm/dts/sun8i-v3s-strawberrypi-zero.dts
+@@ -0,0 +1,125 @@
++/*
++ * Copyright (C) 2016 Icenowy Zheng <icenowy@aosc.xyz>
++ *
++ * This file is dual-licensed: you can use it either under the terms
++ * of the GPL or the X11 license, at your option. Note that this dual
++ * licensing only applies to this file, and not this project as a
++ * whole.
++ *
++ *  a) This file is free software; you can redistribute it and/or
++ *     modify it under the terms of the GNU General Public License as
++ *     published by the Free Software Foundation; either version 2 of the
++ *     License, or (at your option) any later version.
++ *
++ *     This file is distributed in the hope that it will be useful,
++ *     but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *     GNU General Public License for more details.
++ *
++ * Or, alternatively,
++ *
++ *  b) Permission is hereby granted, free of charge, to any person
++ *     obtaining a copy of this software and associated documentation
++ *     files (the "Software"), to deal in the Software without
++ *     restriction, including without limitation the rights to use,
++ *     copy, modify, merge, publish, distribute, sublicense, and/or
++ *     sell copies of the Software, and to permit persons to whom the
++ *     Software is furnished to do so, subject to the following
++ *     conditions:
++ *
++ *     The above copyright notice and this permission notice shall be
++ *     included in all copies or substantial portions of the Software.
++ *
++ *     THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
++ *     EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
++ *     OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
++ *     NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
++ *     HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
++ *     WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
++ *     FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
++ *     OTHER DEALINGS IN THE SOFTWARE.
++ */
++
++/dts-v1/;
++#include <dt-bindings/input/input.h>
++#include "sun8i-v3s.dtsi"
++#include "sunxi-common-regulators.dtsi"
++
++/ {
++	model = "Strawberry Pi Zero";
++	compatible = "strawberrypi,strawberrypi-zero", "allwinner,sun8i-v3s";
++
++	aliases {
++		serial2 = &uart2;
++	};
++
++	chosen {
++		stdout-path = "serial2:115200n8";
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		red_led {
++			label = "strawberrypi:red:usr";
++			gpios = <&pio 1 9 GPIO_ACTIVE_HIGH>; /* PB9 */
++			default-state = "off";
++		};
++	};
++};
++
++&lradc {
++	vref-supply = <&reg_vcc3v0>;
++	status = "okay";
++
++	button@200 {
++		label = "Volume Up";
++		linux,code = <KEY_VOLUMEUP>;
++		channel = <0>;
++		voltage = <200000>;
++	};
++
++	button@400 {
++		label = "Volume Down";
++		linux,code = <KEY_VOLUMEDOWN>;
++		channel = <0>;
++		voltage = <400000>;
++	};
++
++	button@600 {
++		label = "Select";
++		linux,code = <KEY_SELECT>;
++		channel = <0>;
++		voltage = <600000>;
++	};
++
++	button@800 {
++		label = "Start";
++		linux,code = <KEY_OK>;
++		channel = <0>;
++		voltage = <800000>;
++	};
++};
++
++&mmc0 {
++	broken-cd;
++	bus-width = <4>;
++	vmmc-supply = <&reg_vcc3v3>;
++	status = "okay";
++};
++
++&uart2 {
++	pinctrl-0 = <&uart2_pins>;
++	pinctrl-names = "default";
++	status = "okay";
++};
++
++&usb_otg {
++	dr_mode = "otg";
++	status = "okay";
++};
++
++&usbphy {
++	usb0_id_det-gpios = <&pio 5 6 GPIO_ACTIVE_HIGH>;
++	status = "okay";
++};
+diff --git a/arch/arm/mach-sunxi/Kconfig b/arch/arm/mach-sunxi/Kconfig
+index 0135575ca1..68b4113f6e 100644
+--- a/arch/arm/mach-sunxi/Kconfig
++++ b/arch/arm/mach-sunxi/Kconfig
+@@ -1052,7 +1052,7 @@ config SPL_STACK_R_ADDR
+ 
+ config SPL_SPI_SUNXI
+ 	bool "Support for SPI Flash on Allwinner SoCs in SPL"
+-	depends on MACH_SUN4I || MACH_SUN5I || MACH_SUN7I || MACH_SUNXI_H3_H5 || MACH_SUN50I || MACH_SUN8I_R40 || MACH_SUN50I_H6
++	depends on MACH_SUN4I || MACH_SUN5I || MACH_SUN7I || MACH_SUN8I || MACH_SUNXI_H3_H5 || MACH_SUN50I || MACH_SUN8I_R40 || MACH_SUN50I_H6
+ 	help
+ 	  Enable support for SPI Flash. This option allows SPL to read from
+ 	  sunxi SPI Flash. It uses the same method as the boot ROM, so does
+diff --git a/board/sunxi/MAINTAINERS b/board/sunxi/MAINTAINERS
+index 76eba2ad20..48c9869832 100644
+--- a/board/sunxi/MAINTAINERS
++++ b/board/sunxi/MAINTAINERS
+@@ -266,6 +266,11 @@ M:	Icenowy Zheng <icenowy@aosc.xyz>
+ S:	Maintained
+ F:	configs/LicheePi_Zero_defconfig
+ 
++STRAWBERRYPI-ZERO BOARD
++M:	Atom Long <atom.long@hotmail.com>
++S:	Maintained
++F:	configs/StrawberryPi_Zero_defconfig
++
+ LINKSPRITE-PCDUINO BOARD
+ M:	Zoltan Herpai <wigyori@uid0.hu>
+ S:	Maintained
+diff --git a/configs/StrawberryPi_Zero_defconfig b/configs/StrawberryPi_Zero_defconfig
+new file mode 100644
+index 0000000000..47eb574ae2
+--- /dev/null
++++ b/configs/StrawberryPi_Zero_defconfig
+@@ -0,0 +1,8 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_SPL=y
++CONFIG_MACH_SUN8I_V3S=y
++CONFIG_DRAM_CLK=360
++CONFIG_DEFAULT_DEVICE_TREE="sun8i-v3s-strawberrypi-zero"
++# CONFIG_NETDEVICES is not set
++CONFIG_CONS_INDEX=3
+diff --git a/configs/StrawberryPi_Zero_flash_defconfig b/configs/StrawberryPi_Zero_flash_defconfig
+new file mode 100644
+index 0000000000..76e5eaed0e
+--- /dev/null
++++ b/configs/StrawberryPi_Zero_flash_defconfig
+@@ -0,0 +1,32 @@
++CONFIG_ARM=y
++CONFIG_ARCH_SUNXI=y
++CONFIG_ENV_SIZE=0x10000
++CONFIG_ENV_OFFSET=0x88000
++CONFIG_ENV_SECT_SIZE=0x1000
++CONFIG_MACH_SUN8I_V3S=y
++CONFIG_DRAM_CLK=360
++CONFIG_DEFAULT_DEVICE_TREE="sun8i-v3s-strawberrypi-zero-flash"
++CONFIG_CONS_INDEX=3
++CONFIG_CMD_SF=y
++CONFIG_CMD_SPI=y
++CONFIG_CMD_MTD=y
++CONFIG_CMD_MTDPARTS=y
++CONFIG_MTD=y
++CONFIG_DM_MTD=y
++CONFIG_DM_SPI=y
++CONFIG_DM_SPI_FLASH=y
++CONFIG_SPI=y
++CONFIG_SPI_FLASH=y
++CONFIG_SPI_FLASH_WINBOND=y
++CONFIG_SPI_FLASH_MTD=y
++# CONFIG_SPI_FLASH_USE_4K_SECTORS is not set
++CONFIG_SPL=y
++CONFIG_SPL_SPI_SUNXI=y
++# CONFIG_ENV_IS_IN_FAT is not set
++CONFIG_MTDIDS_DEFAULT="nor0=spi0.0"
++CONFIG_MTDPARTS_DEFAULT="spi0.0:1M(uboot),64k(dtb),4M(kernel),-(rootfs)"
++CONFIG_ENV_IS_IN_SPI_FLASH=y
++CONFIG_USE_BOOTARGS=y
++CONFIG_BOOTARGS="console=ttyS2,115200 earlyprintk panic=5 rootwait root=mtd3 rw rootfstype=jffs2"
++CONFIG_USE_BOOTCOMMAND=y
++CONFIG_BOOTCOMMAND="sf probe 0; sf read 0x41800000 0x100000 0x10000; sf read 0x41000000 0x110000 0x400000; bootz 0x41000000 - 0x41800000"
+-- 
+2.30.1.windows.1
+
