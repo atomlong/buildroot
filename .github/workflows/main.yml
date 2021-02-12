@@ -1,0 +1,70 @@
+name: git CI
+
+on: 
+  release:
+    types: [published]
+  push:
+    tags:
+    - 'v*'
+    branches: 
+    - master
+  schedule:
+    - cron: 00 15 * * *
+  watch:
+    types: [started]
+
+jobs:
+  Sync-With-Upstream:
+    runs-on: ubuntu-20.04
+    name: pull buildroot
+    if: github.event.repository.owner.id == github.event.sender.id
+    env:
+      UPSTREAM_URL: ${{ secrets.UPSTREAM_URL }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      id: checkout
+      with:
+        fetch-depth: 0
+        ref: ${{ matrix.branch }}
+    - name: Pull upstream changes
+      uses: atomlong/Sync-With-Upstream-action@master
+      id: sync
+      if: ${{ env.UPSTREAM_URL != '' }}
+      with:
+        upstream_repository: ${{ env.UPSTREAM_URL }}
+        upstream_branch: master
+        target_branch: master
+        git_pull_args: --rebase
+        git_push_args: --force-with-lease --tags
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+    - name: Build Image
+      if: github.event_name == 'push'
+      id: build
+      env:
+        DEFCONFIG: ${{ secrets.DEFCONFIG }}
+        RCLONE_CONF: ${{ secrets.RCLONE_CONF }}
+        DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        TOOLCHAIN_URL: ${{ secrets.TOOLCHAIN_URL }}
+      run: |
+        export CI_REPO=${GITHUB_REPOSITORY}
+        export CI_BUILD_DIR=${GITHUB_WORKSPACE}
+        export CI_COMMIT=${GITHUB_SHA}
+        export CI_BRANCH=$(sed -r 's|^refs/heads/||' <<< ${GITHUB_REF})
+        export CI_BUILD_NUMBER=${GITHUB_RUN_NUMBER}
+        bash .github/workflows/ci-build.sh
+    - name: Send mail
+      uses: atomlong/send-mail-action@v2
+      id: mail
+      if: ${{ steps.build.outputs.message != '' }}
+      with:
+        server_address: ${{secrets.MAIL_HOST}}
+        server_port: ${{secrets.MAIL_PORT}}
+        username: ${{secrets.MAIL_USERNAME}}
+        password: ${{secrets.MAIL_PASSWORD}}
+        subject: Github Actions job of ${{github.repository}} result
+        body: ${{ steps.build.outputs.message }}
+        to: ${{secrets.MAIL_TO}}
+        from: Github
+        content_type: text/html
+    
